@@ -63,8 +63,8 @@ for sigma_test in sigmas:
 
     print("===>Testing using weights: ",weights)
     print("------------------------------------------------")
-    model_restoration.cuda()
-    model_restoration = nn.DataParallel(model_restoration)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_restoration = nn.DataParallel(model_restoration, device_ids=[0])
     model_restoration.eval()
 
     for dataset in datasets:
@@ -75,15 +75,13 @@ for sigma_test in sigmas:
 
         with torch.no_grad():
             for file_ in tqdm(files):
-                torch.cuda.ipc_collect()
-                torch.cuda.empty_cache()
                 img = np.float32(utils.load_gray_img(file_))/255.
 
                 np.random.seed(seed=0)  # for reproducibility
                 img += np.random.normal(0, sigma_test/255., img.shape)
 
                 img = torch.from_numpy(img).permute(2,0,1)
-                input_ = img.unsqueeze(0).cuda()
+                input_ = img.unsqueeze(0).to(device)
 
                 # Padding in case images are not multiples of 8
                 h,w = input_.shape[2], input_.shape[3]
